@@ -74,7 +74,7 @@ public final class AnnotationUtils {
      * @param annotation the annotation to be tested
      * @return true if the annotation is expected to have values per-allele
      */
-    public static boolean isAlleleSpecific(final InfoFieldAnnotation annotation) {
+    public static boolean isAlleleSpecific(final VariantAnnotation annotation) {
         return annotation instanceof AlleleSpecificAnnotation;
     }
 
