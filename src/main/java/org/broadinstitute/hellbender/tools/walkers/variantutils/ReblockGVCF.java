@@ -944,17 +944,35 @@ public final class ReblockGVCF extends MultiVariantWalker {
                     destinationAttrMap.put(key, origMap.get(key));
                 }
             }
-            if (annotation instanceof ReducibleAnnotation) {
-                for (final String rawKey : ((ReducibleAnnotation)annotation).getRawKeyNames()) {
+            if (annotation instanceof AlleleSpecificAnnotation) {
+                final boolean isReducible = annotation  instanceof ReducibleAnnotation;
+                final List<String> keyNames = isReducible ? ((ReducibleAnnotation)annotation).getRawKeyNames() :
+                        annotation.getKeyNames();
+                for (final String rawKey : keyNames) {
                     if (infoFieldAnnotationKeyNamesToRemove.contains(rawKey)) {
                         continue;
                     }
                     if (origMap.containsKey(rawKey)) {
                         if (allelesNeedSubsetting && AnnotationUtils.isAlleleSpecific(annotation)) {
-                            final List<String> alleleSpecificValues = AnnotationUtils.getAlleleLengthListOfString(sourceVC.getAttributeAsString(rawKey, null));
+                            final List<String> alleleSpecificValues;
+                            if (isReducible) {
+                                alleleSpecificValues = AnnotationUtils.getAlleleLengthListOfString(sourceVC.getAttributeAsString(rawKey, null));
+                            } else {
+                                String value = sourceVC.getAttributeAsString(rawKey, null);
+                                if (value == null) {
+                                    alleleSpecificValues = Collections.emptyList();
+                                } else {
+                                alleleSpecificValues = AnnotationUtils.decodeAnyASList(value);
+                                }
+                            }
                             final List<String> subsetList;
                             if (alleleSpecificValues.size() > 0) {
-                                subsetList = AlleleSubsettingUtils.remapRLengthList(alleleSpecificValues, relevantIndices, "");
+                                //TODO do we need an alternate to A-length?
+                                if (isReducible) {
+                                    subsetList = AlleleSubsettingUtils.remapRLengthList(alleleSpecificValues, relevantIndices, "");
+                                } else {
+                                    subsetList = AlleleSubsettingUtils.remapALengthList(alleleSpecificValues, relevantIndices, "");
+                                }
                                 if (sourceVC.getAlleles().get(relevantIndices[relevantIndices.length - 1]).equals(Allele.NON_REF_ALLELE)) {
                                     //zero out non-ref value, just in case
                                     subsetList.set(subsetList.size() - 1, ((AlleleSpecificAnnotation) annotation).getEmptyRawValue());
@@ -963,7 +981,11 @@ public final class ReblockGVCF extends MultiVariantWalker {
                                 subsetList = Collections.nCopies(relevantIndices.length, "");
                             }
 
-                            destinationAttrMap.put(rawKey, AnnotationUtils.encodeAnyASListWithRawDelim(subsetList));
+                            if (isReducible) {
+                                destinationAttrMap.put(rawKey, AnnotationUtils.encodeAnyASListWithRawDelim(subsetList));
+                            } else {
+                                destinationAttrMap.put(rawKey, AnnotationUtils.encodeStringList(subsetList));
+                            }
                         } else {
                             destinationAttrMap.put(rawKey, origMap.get(rawKey));
                         }
