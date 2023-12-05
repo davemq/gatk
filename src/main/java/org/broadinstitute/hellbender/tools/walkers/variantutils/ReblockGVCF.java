@@ -961,16 +961,16 @@ public final class ReblockGVCF extends MultiVariantWalker {
                         continue;
                     }
                     if (origMap.containsKey(rawKey)) {
-                        if (allelesNeedSubsetting && AnnotationUtils.isAlleleSpecific(annotation)) {
+                        if (allelesNeedSubsetting && AnnotationUtils.isAlleleSpecific(annotation) && AnnotationUtils.isAlleleSpecificGatkKey(rawKey)) {
                             final List<String> alleleSpecificValues;
                             if (isReducible) {
-                                alleleSpecificValues = AnnotationUtils.getAlleleLengthListOfString(sourceVC.getAttributeAsString(rawKey, null));
+                                alleleSpecificValues = AnnotationUtils.getAlleleLengthListOfStringFromRawData(sourceVC.getAttributeAsString(rawKey, null));
                             } else {
                                 String value = sourceVC.getAttributeAsString(rawKey, null);
                                 if (value == null) {
                                     alleleSpecificValues = Collections.emptyList();
                                 } else {
-                                alleleSpecificValues = AnnotationUtils.decodeAnyASList(value);
+                                    alleleSpecificValues = AnnotationUtils.getAlleleLengthListOfString(value);
                                 }
                             }
                             final List<String> subsetList;
