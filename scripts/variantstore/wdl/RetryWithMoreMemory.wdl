@@ -11,6 +11,8 @@ task RetryWithMoreMemory {
 
         # Fake being out of memory
         echo "OutOfMemory" 1>&2
+
+        exit 137
     >>>
     runtime {
         docker: "ubuntu:latest"
