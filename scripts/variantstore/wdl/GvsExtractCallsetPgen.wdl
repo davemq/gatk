@@ -140,10 +140,17 @@ workflow GvsExtractCallsetPgen {
                                                                 if GetNumSamplesLoaded.num_samples < 100 then 50 # Quickstart
                                                                 else 500])
 
+    # Cromwell using a PAPI v2 beta backend
+    # https://github.com/broadinstitute/terra-helmfile/blob/master/charts/cromwell/templates/config/_cromwell.conf.tpl#L362
+    # Which will use an n1 custom machine type by default
+    # https://github.com/broadinstitute/cromwell/blob/027de62cf8e37f62330d76dba67ed07cce81a1ba/supportedBackends/google/pipelines/common/src/main/scala/cromwell/backend/google/pipelines/common/MachineConstraints.scala#L30
+    # Cromwell should look for OutOfMemory error which we see in PGEN extract as one of its default keys.
+    # https://github.com/broadinstitute/cromwell/blob/027de62cf8e37f62330d76dba67ed07cce81a1ba/core/src/main/resources/reference.conf#L282
+    # `memory_retry_multiplier` defaults to 1.1 and does not appear to be overridden in `terra-helmfile`.
     Int effective_extract_memory_gib = if defined(extract_memory_override_gib) then select_first([extract_memory_override_gib])
                                        else if effective_scatter_count <= 100 then 40
                                            else if effective_scatter_count <= 500 then 20
-                                               else 12
+                                               else 14
     # WDL 1.0 trick to set a variable ('none') to be undefined.
     if (false) {
         File? none = ""
