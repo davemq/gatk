@@ -45,11 +45,9 @@ public class PowerPairHmm implements PairHMMNativeBinding {
 
     /**
      * Loads the native library, if it is supported on this platform. <p>
-     * Returns false if AVX is not supported. <br>
-     * Returns false if the native library cannot be loaded for any reason. <br>
      *
      * @param tempDir  directory where the native library is extracted or null to use the system temp directory
-     * @return  true if the native library is supported and loaded, false otherwise
+     * @return  true
      */
     @Override
     public synchronized boolean load(File tempDir) {
