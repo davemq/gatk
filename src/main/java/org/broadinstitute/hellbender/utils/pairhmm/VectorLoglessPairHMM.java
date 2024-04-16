@@ -35,6 +35,10 @@ public final class VectorLoglessPairHMM extends LoglessPairHMM {
          * OpenMP multi-threaded AVX-accelerated version of PairHMM
          */
         OMP,
+        /**
+         * VSX-accelerated version of PairHMM
+         */
+        VSX,
     }
 
     private static final Logger logger = LogManager.getLogger(VectorLoglessPairHMM.class);
@@ -73,6 +77,14 @@ public final class VectorLoglessPairHMM extends LoglessPairHMM {
                     throw new UserException.HardwareFeatureException("Machine does not support OpenMP AVX PairHMM.");
                 }
                 break;
+
+	    case VSX:
+		pairHmm = new PowerPairHmm();
+		isSupported = pairHmm.load(null);
+                if (!isSupported) {
+                    throw new UserException.HardwareFeatureException("Machine does not support OpenMP VSX PairHMM.");
+                }
+		break;
 
             default:
                 throw new UserException.HardwareFeatureException("Unknown PairHMM implementation.");
