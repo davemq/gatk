@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.utils.pairhmm;
 
+import com.ibm.pairhmm.PowerPairHmm;
 import com.intel.gkl.pairhmm.IntelPairHmm;
 import com.intel.gkl.pairhmm.IntelPairHmmOMP;
 import com.intel.gkl.pairhmm.IntelPairHmmFpga;
