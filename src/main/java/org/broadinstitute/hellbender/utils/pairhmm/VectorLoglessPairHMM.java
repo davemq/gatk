@@ -79,13 +79,13 @@ public final class VectorLoglessPairHMM extends LoglessPairHMM {
                 }
                 break;
 
-	    case VSX:
-		pairHmm = new PowerPairHmm();
-		isSupported = pairHmm.load(null);
+            case VSX:
+                pairHmm = new PowerPairHmm();
+                isSupported = pairHmm.load(null);
                 if (!isSupported) {
                     throw new UserException.HardwareFeatureException("Machine does not support OpenMP VSX PairHMM.");
                 }
-		break;
+                break;
 
             default:
                 throw new UserException.HardwareFeatureException("Unknown PairHMM implementation.");
