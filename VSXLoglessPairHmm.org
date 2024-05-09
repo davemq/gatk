@@ -1,0 +1,448 @@
+#+title: "Porting" LoglessPairHMM to Power VSX
+#+author: Dave Marquardt
+#+email: davemarq@us.ibm.com
+#+property: header-args :exports code
+#+latex_header: \usepackage{minted}
+
+#+begin_comment
+Tangling likes to output the Org text with indentation that doesn't
+match the indentation rules for the mode.
+
+The text that is interleaved with code is indented to match the code.
+
+But even with this, org-babel-tangle will, by default, remove the
+indentation.
+
+I had to write a new function that merely returns the "code" and set
+org-babel-process-comment-text that that new function, rather than the
+default value, which is a function that removes indentation.
+#+end_comment
+
+* Introduction
+
+This shows how to "port" the logless pair HMM Java implementation to C
+or C++, so we can have gcc compile into code that uses VSX vector
+instructions on Power 9 and above.[fn:1] The goal is to provide a
+vector pair HMM implementation on Power that has significantly better
+performance than the non-vector implementation, and is close to the
+performance of the AVX implementations.
+
+* New Java class VSXLoglessPairHMM
+
+We will create a new Java class VSXLoglessPairHMM, based on
+LoglessPairHMM. We will use this class to override the main loop of
+code with /native/ code, i.e. code implemented in C or C++.
+
+The main code is in method src_java{public double
+subComputeReadLikelihoodGivenHaplotypeLog10}. There is an
+initialization loop here that likely gets called once. Then a main
+loop that has a loop inside it. Then a final loop to create a sum.
+
+The first loop, for initialization, we will leave alone.
+
+The second loop will be ported to C or C++.
+
+The third loop /may/ be ported to C or C++, perhaps bundled with the
+second loop.
+
+** Second loop
+
+The second loop is the real guts of
+src_java{subComputeReadLikelihoodGivenHaplotypeLog10}:
+
+#+begin_src java :options 
+        for (int i = 1; i < paddedReadLength; i++) {
+            // +1 here is because hapStartIndex is 0-based, but our matrices are 1
+	    // based
+            for (int j = hapStartIndex+1; j < paddedHaplotypeLength; j++) {
+                //Inlined the code from updateCell - helps JIT to detect
+		//hotspots and produce good native code
+                matchMatrix[i][j] = prior[i][j] * ( matchMatrix[i - 1][j - 1] *
+						    transition[i][matchToMatch] +
+						    insertionMatrix[i - 1][j - 1] *
+						    transition[i][indelToMatch] +
+						    deletionMatrix[i - 1][j - 1] *
+						    transition[i][indelToMatch] );
+                insertionMatrix[i][j] = matchMatrix[i - 1][j] *
+		    transition[i][matchToInsertion] + insertionMatrix[i - 1][j] *
+		    transition[i][insertionToInsertion];
+                deletionMatrix[i][j] = matchMatrix[i][j - 1] *
+		    transition[i][matchToDeletion] + deletionMatrix[i][j - 1] *
+		    transition[i][deletionToDeletion];
+            }
+        }
+#+end_src
+
+These are integer variables that will need to be passed to a native
+routine:
+- src_c++{hapStartIndex}
+- src_c++{paddedHaplotypeLength}
+- src_c++{paddedReadLength}
+
+There are also these matrices that are declared as src_c++{double
+[][]}:
+- src_c++{deletionMatrix}
+- src_c++{insertionMatrix}
+- src_c++{matchMatrix}
+- src_c++{prior}
+- src_c++{transition}
+
+These variables all need to be passed to the native routine. The
+integer variables don't get modified, so are simple to deal with
+directly, other than casting from src_c++{jint} to src_c++{int}.
+
+For the matrices, we have more work to do to make these available to
+the native code.
+
+** Third loop
+
+The third loop sums the probabilities from src_java{matchMatrix} and
+src_java{insertionMatrix}.
+
+#+begin_src java
+        // final log probability is the log10 sum of the last element in the
+        // Match and Insertion state arrays
+        // this way we ignore all paths that ended in deletions! (huge)
+        // but we have to sum all the paths ending in the M and I matrices,
+        // because they're no longer extended.
+        final int endI = paddedReadLength - 1;
+        double finalSumProbabilities = 0.0;
+        for (int j = 1; j < paddedHaplotypeLength; j++) {
+            finalSumProbabilities += matchMatrix[endI][j] + insertionMatrix[endI][j];
+        }
+#+end_src
+
+Since we already will have access to src_java{matchMatric} and
+src_java{insertionMatrix} in the native code, we'll go ahead and
+compute src_java{finalSumProbabilities} and return it. This will make
+our native routine return src_c{jdouble}.
+
+* Native code
+
+C code to implement the native functions.
+
+** Header files
+
+We need to include
+- jni.h to use JNI
+- math.h for NAN
+- stdlib.h to use src_c{calloc} and src_c{posix_memalign}
+- string.h for src_c{memset}
+
+#+begin_src c :tangle PowerPairHmm.c :comments org :exports none
+/*
+ ,* NOTE: THIS FILE IS GENERATED from an Org mode document. Edit the original
+ ,* document and re-tangle this file.
+ ,*/
+#+end_src
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+#include <jni.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#+end_src
+
+** Typedefs
+
+Tracking pointer types is helped out by adding some typedefs.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+typedef jdouble *jdoubleP;
+typedef jdoubleArray *jdoubleArrayP;
+#+end_src
+
+** getDouble2dArray: Get access to double [][] arrays
+
+This C function
+- gets the size of the outer array using src_c{GetObjectLength}
+- allocates an array of src_c{jdoubleP}
+- allocates an array of src_c{jdoubleArray} to use later to release
+  memory
+- for each element of the outer array
+  - call src_c{GetDoubleArrayElements} to get access to the Java
+    src_java{double [][]}
+  - save the array src_c{jdoubleArray} and the native src_c{jdoubleP}
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+jdoubleP *
+getDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleArrayP *arrays)
+{
+#+end_src
+
+	Get the length of the outer array.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	jsize len = GetArrayLength(env, matrix);
+#+end_src
+
+	Allocate src_c{jdoubleP} and src_c{jdoubleArray} arrays. We
+	use src_c{posix_memalign} for the src_c{jdoubleP} array to
+	help the compiled code use POWER vector instructions.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	jdoubleP *ptrs;
+
+	int rc = posix_memalign(&ptrs, 16, len * sizeof(jdoubleP));
+	if (rc != 0) {
+		return NULL;
+	}
+	(void) memset(ptrs, 0, len * sizeof(jdoubleP));
+
+	,*arrays = calloc(len, sizeof(jdoubleArray));
+	if (*arrays == NULL) {
+		goto cleanptrs;
+	}
+#+end_src
+
+	For each index src_c{i} from 0 to src_c{len - 1}
+	- get outer array element, a src_c{jdoubleArray}. Save in src_c{*arrays[i]}
+	- call GetDoubleArrayElements on src_c{*arrays[i]}. Save in
+          src_c{ptrs[i]}
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	for (jsize i = 0; i < len; i++) {
+		,*arrays[i] = GetObjectArrayElement(env, matrix, i);
+		if (*arrays[i] == NULL) {
+			goto cleanarrays;
+		}
+		ptrs[i] = GetDoubleArrayElements(env, *arrays[i], NULL);
+		if (ptrs[i] == NULL) {
+			goto cleanarrays;
+		}
+	}
+#+end_src
+
+	At this point, we're done, so return src_c{ptrs}.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	return ptrs;
+#+end_src
+
+	Now we have the cleanup labels. Recall that the code jumps to
+	either src_c{cleanptrs:} or src_c{cleanarrays:} in the case of
+	errors. We handle these in reverse order, with
+	src_c{cleanarrays:} first and then falling through to
+	src_c{cleanptrs:}.
+
+	For src_c{cleanarrays:} we need to release memory back to
+	Java. Rely on the fact that we zeroed out src_c{ptrs} and
+	src_c{*arrays} when allocating memory to break out of the loop
+	early. Also free src_c{*arrays} here.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+cleanarrays:
+	for (int i = 0; i < len; i++) {
+		if (ptrs[i] == NULL) {
+			break;
+		}
+
+		/* ReleaseDoubleArrayElements() with mode=0 frees ptrs[i] */
+		ReleaseDoubleArrayElements(env, *arrays[i], ptrs[i], 0);
+	}
+
+	free(*arrays);
+#+end_src
+
+	src_c{cleanptrs:} only handles freeing src_c{*ptrs}, then
+	returns NULL.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+cleanptrs:
+	free(ptrs);
+	return NULL;
+}
+#+end_src
+
+** releaseDouble2dArray: release memory and flush to Java
+
+src_c{releaseDouble2dArray} is similar to the clean up code in
+src_c{getDouble2dArray}, but leaves out checks for NULL pointers as
+there shouldn't be any.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+void
+releaseDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleP *native, jdoubleArrayP *jarray)
+{
+#+end_src
+
+	First, get the length of the array.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	jsize len = GetArrayLength(matrix);
+#+end_src
+
+	For each index from 0 to src_c{len - 1}
+	- call ReleaseDoubleArrayElements with src_c{native[i]} and
+          src_c{*jarray[i]}
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	for (int i = 0; i < len; i++) {
+		/* ReleaseDoubleArrayElements with mode=0 frees memory */
+		ReleaseDoubleArrayElements(env, *jarray[i], native[i], 0);
+	}
+#+end_src
+
+	Now, free src_c{jarray} and src_c{native}.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	free(*jarray);
+	,*jarray = NULL;
+	free(native);
+}
+#+end_src
+
+** Native code and JNI
+
+
+The native code will use JNI to get access to Java class data. Since
+we have 5 matrices declared as src_java{double [][]}, we'll write a C
+function src_c{get2dDoubleArray} to set up access to these matrices.
+
+A src_java{double [][]} is implemented as an array of arrays of
+doubles. This is passed as a src_c{jObjectArray} to
+C/C++. src_c{GetObjectArrayLength} is called to get the length of the
+outer array. Then a array of double pointers (src_c{double *}) is
+dynamically allocated using src_c{malloc} or src_c++{new}.
+
+The native code for the main loop of
+src_java{subComputeReadLikelihoodGivenHaplotypeLog10} will start with
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+JNIEXPORT jdouble JNICALL
+Java_com_ibm_pairhmm_PowerPairHmm_subComputeReadLikelihoodGivenHaplotypeLog10Inner
+(JNIEnv *env, jobject this, jint paddedReadLength, jint hapStartIndex,
+ jint paddedHaplotypeLength, jobjectArray matchMatrix, jobjectArray priorMatrix,
+ jobjectArray transitionMatrix, jobjectArray insertionMatrix,
+ jobjectArray deletionMatrix)
+{
+#+end_src
+
+	Recall in [[Second loop]] that src_java{hapStartIndex},
+	src_java{paddedHaplotypeLength}, and src_java{paddedReadLength} are
+	all integer types. We create 3 C variables that use these
+	values cast to src_c{int}.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	int start = (int) hapStartIndex;
+	int hapLength = (int) paddedHaplotypeLength;
+	int readLength = (int) paddedReadLength;
+#+end_src
+
+	We declare and initialize src_c{finalSumProbabilities} to
+	src_c{NAN} here so if there's a problem encountered before
+	computing src_c{finalSumProbabilities} we return src_c{NAN}.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	jdouble finalSumProbabilities = NAN;
+#+end_src
+	
+	The rest of the variables are src_c{jobjectArray}s that are Java
+	src_java{double [][]}. We will represent these as src_c{double **}
+	variables.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	jdouble **match, **prior, **transition, **insertion, **deletion;
+#+end_src
+
+	Underneath these we have src_c{jdoubleArray}s that we will gain access
+	to via the JNI function src_c{GetDoubleArrayElements}. In order to
+	release our access when we're done, we'll need to pass the original
+	src_c{jdoubleArray} and the native type pointer to
+	src_c{ReleaseDoubleArrayElements()}. So we'll need to track both of
+	these together. We will track the src_c{jdoubleArray}s in separate
+	arrays, dynamically allocated.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	jdoubleArray *jMatch, *jPrior, *jTransition, *jInsertion, *jDeletion;
+#+end_src
+
+	For each of the matrices, we call a new routine
+	src_c{getDouble2dArray} to retrieve the array elements and track them.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	if ((match = getDouble2dArray(matchMatrix, &jMatch)) == NULL) {
+		return NAN;
+	}
+	if ((prior = getDouble2dArray(priorMatrix, &jPrior)) == NULL) {
+		goto free_match;
+	}
+	if ((transition = getDouble2dArray(transitionMatrix, &jTransition)) == NULL) {
+		goto free_prior;
+	}
+	if ((insertion = getDouble2dArray(insertionMatrix, &jInsertion)) == NULL) {
+		goto free_transition;
+	}
+	if ((deletion = getDouble2dArray(deletionMatrix, &jDeletion)) == NULL) {
+		goto free_insertion;
+	}
+#+end_src
+
+	If these calls succeed, we can now get on to the matrix manipulations.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	for (int i = 1; i < readLength; i++) {
+		/* +1 here is because hapStartIndex is 0-based, but our matrices are 1 */
+		/* based */
+		for (int j = start+1; j < hapLength; j++) {
+			match[i][j] = prior[i][j] *
+				( match[i - 1][j - 1] *
+				  transition[i][matchToMatch] +
+				  insertion[i - 1][j - 1] *
+				  transition[i][indelToMatch] +
+				  deletion[i - 1][j - 1] *
+				  transition[i][indelToMatch] );
+			insertion[i][j] = match[i - 1][j] *
+				transition[i][matchToInsertion] +
+				insertion[i - 1][j] *
+				transition[i][insertionToInsertion];
+			deletion[i][j] = match[i][j - 1] *
+				transition[i][matchToDeletion] +
+				deletion[i][j - 1] *
+				transition[i][deletionToDeletion];
+		}
+	}
+#+end_src
+
+	Next we compute the final log probability.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	/*
+	 ,* final log probability is the log10 sum of the last element in the
+	 ,* Match and Insertion state arrays
+	 ,* this way we ignore all paths that ended in deletions! (huge)
+	 ,* but we have to sum all the paths ending in the M and I matrices,
+	 ,* because they're no longer extended.
+	 ,*/
+        int endI = readLength - 1;
+        finalSumProbabilities = 0.0;
+        for (int j = 1; j < hapLength; j++) {
+            finalSumProbabilities += matchMatrix[endI][j] + insertionMatrix[endI][j];
+        }
+#+end_src
+
+	We next release all the memory for the matrices.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	deletion = releaseDouble2dArray(deletionMatrix, deletion, &jDeletion);
+free_insertion:
+	insertion = releaseDouble2dArray(insertionMatrix, insertion, &jInsertion);
+free_transition:
+	transition = releaseDouble2dArray(transitionMatrix, transition, &jTransition);
+free_prior:
+	prior = releaseDouble2dArray(priorMatrix, prior, &jPrior);
+free_match:
+	match = releaseDouble2dArray(matchMatrix, match, &jMatch);
+#+end_src
+
+	Finally, we return src_c{finalSumProbabilities}.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	return finalSumProbabilities;
+}
+#+end_src
+
+* Footnotes
+
+[fn:1]This may work for Power 8 also. If so, I'll compile it to work
+for Power 8 and above. 
