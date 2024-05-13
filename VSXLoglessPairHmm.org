@@ -3,6 +3,7 @@
 #+email: davemarq@us.ibm.com
 #+property: header-args :exports code
 #+latex_header: \usepackage{minted}
+#+latex_header: \usepackage{microtype}
 
 #+begin_comment
 Tangling likes to output the Org text with indentation that doesn't
@@ -20,30 +21,31 @@ default value, which is a function that removes indentation.
 
 * Introduction
 
-This shows how to "port" the logless pair HMM Java implementation to C
-or C++, so we can have gcc compile into code that uses VSX vector
+This shows how to "port" the GATK logless pair HMM Java implementation
+to C or C++, so we can have gcc compile into code that uses VSX vector
 instructions on Power 9 and above.[fn:1] The goal is to provide a
 vector pair HMM implementation on Power that has significantly better
 performance than the non-vector implementation, and is close to the
 performance of the AVX implementations.
 
-* New Java class VSXLoglessPairHMM
+* Build
 
-We will create a new Java class VSXLoglessPairHMM, based on
-LoglessPairHMM. We will use this class to override the main loop of
-code with /native/ code, i.e. code implemented in C or C++.
+GATK and Intel's GKL both use Gradle to build. The GATK build only
+deals in Java, no native code. The GKL build deals in both the Java
+code and the native C++ code. The Gradle build runs CMake to build the
+native C++ code. This project will also use the combination of Gradle
+and CMake to build.
 
-The main code is in method src_java{public double
-subComputeReadLikelihoodGivenHaplotypeLog10}. There is an
+* Existing Java class LoglessPairHMM
+
+The main code in LoglessPairHMM is in method
+src_java{subComputeReadLikelihoodGivenHaplotypeLog10}. There is an
 initialization loop here that likely gets called once. Then a main
 loop that has a loop inside it. Then a final loop to create a sum.
 
-The first loop, for initialization, we will leave alone.
+We will leave the first loop, for initialization, alone. The second
+and third loops are discussed below.
 
-The second loop will be ported to C or C++.
-
-The third loop /may/ be ported to C or C++, perhaps bundled with the
-second loop.
 
 ** Second loop
 
@@ -117,11 +119,169 @@ src_java{insertionMatrix} in the native code, we'll go ahead and
 compute src_java{finalSumProbabilities} and return it. This will make
 our native routine return src_c{jdouble}.
 
-* Native code
+* New Java code
+
+** Header matter
+
+#+begin_src java :tangle PowerPairHmm.java :comments org :exports none
+// NOTE: THIS FILE IS GENERATED from an Org mode document. Edit the original
+// document and re-tangle this file.
+#+end_src
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+package com.ibm.power.pairhmm;
+#+end_src
+
+** New Java class VSXPairHMMBinding
+
+In order to not require GATK classes to build, we create a new class
+src_java{VSXPairHMMBinding} that includes our native code, code to
+load our C++ library, and any code required for initialization and
+destruction of class data.
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+public interface VSXPairHMMBinding {
+
+    boolean load(void);
+
+    public void
+	subComputeReadLikelihoodGivenHaplotypeLog10Native(int paddedReadLength,
+							  int hapStartIndex,
+							  int paddedHaplotypeLength,
+							  double [][] matchMatrix,
+							  double [][] prior,
+							  double [][] transition,
+							  double [][] insertion,
+							  double [][] deletion);
+}
+#+end_src
+
+** New Java class VSXLoglessPairHMM
+
+We will create a new Java class VSXLoglessPairHMM, based on
+LoglessPairHMM. We will use this class to override the main loop of
+code with /native/ code, i.e. code implemented in C or C++.
+
+*** Class
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+/// Provides a native LoglessPairHMM implementation accelerated for
+/// Power vector instructions, via compiler optimizations.
+public class VSXLoglessPairHmm implements VSXPairHMMBinding {
+#+end_src
+
+*** Implement load
+
+    The class will load the native library.[fn:3]
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+    public boolean load(void) {
+	System.loadLibrary("vsx_pairhmm.so");
+    }
+#+end_src
+
+*** Implement subComputeReadLikelihoodGivenHaplotypeLog10
+
+    src_java{class VSXLoglessPairHMM} will implement
+    src_java{subComputeReadLikelihoodGivenHaplotypeLog10} in order to call
+    the native code.
+
+#+attr_latex: :options \footnotesize
+#+begin_src java :tangle PowerPairHmm.java :comments org
+    ///
+    /// {@inheritDoc}
+    ///
+    public double subComputeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
+                                                               final byte[] readBases,
+                                                               final byte[] readQuals,
+                                                               final byte[] insertionGOP,
+                                                               final byte[] deletionGOP,
+                                                               final byte[] overallGCP,
+                                                               final int hapStartIndex,
+                                                               final boolean recacheReadValues,
+                                                               final int nextHapStartIndex) {
+#+end_src
+
+        We leave initialization code in place.
+
+#+attr_latex: :options \footnotesize
+#+begin_src java :tangle PowerPairHmm.java :comments org
+        if (previousHaplotypeBases == null || previousHaplotypeBases.length != haplotypeBases.length) {
+            final double initialValue = INITIAL_CONDITION / haplotypeBases.length;
+            // set the initial value (free deletions in the beginning) for the first row in the
+	    // deletion matrix
+            for( int j = 0; j < paddedHaplotypeLength; j++ ) {
+                deletionMatrix[0][j] = initialValue;
+            }
+        }
+
+        if ( ! constantsAreInitialized || recacheReadValues ) {
+            initializeProbabilities(transition, insertionGOP, deletionGOP, overallGCP);
+
+            // note that we initialized the constants
+            constantsAreInitialized = true;
+        }
+
+        initializePriors(haplotypeBases, readBases, readQuals, hapStartIndex);
+#+end_src
+
+        Now we call our native method
+        src_java{subComputeReadLikelihoodGivenHaplotypeLog10Native}:
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+	double finalSumProbabilities;
+	finalSumProbabilities =
+	    subComputeReadLikelihoodGivenHaplotypeLog10Native(paddedReadLength,
+							      hapStartIndex,
+							      paddedHaplotypeLength,
+							      matchMatrix,
+							      prior,
+							      transition,
+							      insertion,
+							      deletion);
+	
+#+end_src
+
+        The native method returns src_c{NAN} (Not A Number) if it
+        encounters errors. Check for that here and return if
+        detected.[fn:2]
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+	if (finalSumProbabilities.isNan()) {
+	    return finalSumProbabilities;
+	}
+#+end_src
+
+        Finally, return log10 of src_java{finalSumProbabilities} minus
+        src_java{INITIAL_CONDITIION_LOG10}.
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+        return Math.log10(finalSumProbabilities) - INITIAL_CONDITION_LOG10;
+    }
+#+end_src
+
+*** Declare native methods
+
+    Here we add the src_java{private native} methods.
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+    private native static void
+	subComputeReadLikelihoodGivenHaplotypeLog10Native(int paddedReadLength,
+							  int hapStartIndex,
+							  int paddedHaplotypeLength,
+							  double [][] matchMatrix,
+							  double [][] prior,
+							  double [][] transition,
+							  double [][] insertion,
+							  double [][] deletion);
+}
+#+end_src
+
+** Native code
 
 C code to implement the native functions.
 
-** Header files
+*** Header files
 
 We need to include
 - jni.h to use JNI
@@ -143,7 +303,7 @@ We need to include
 #include <string.h>
 #+end_src
 
-** Typedefs
+*** Typedefs
 
 Tracking pointer types is helped out by adding some typedefs.
 
@@ -152,7 +312,7 @@ typedef jdouble *jdoubleP;
 typedef jdoubleArray *jdoubleArrayP;
 #+end_src
 
-** getDouble2dArray: Get access to double [][] arrays
+*** getDouble2dArray: Get access to double [][] arrays
 
 This C function
 - gets the size of the outer array using src_c{GetObjectLength}
@@ -254,7 +414,7 @@ cleanptrs:
 }
 #+end_src
 
-** releaseDouble2dArray: release memory and flush to Java
+*** releaseDouble2dArray: release memory and flush to Java
 
 src_c{releaseDouble2dArray} is similar to the clean up code in
 src_c{getDouble2dArray}, but leaves out checks for NULL pointers as
@@ -292,7 +452,7 @@ releaseDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleP *native, jdouble
 }
 #+end_src
 
-** Native code and JNI
+*** Native code and JNI
 
 
 The native code will use JNI to get access to Java class data. Since
@@ -442,7 +602,11 @@ free_match:
 }
 #+end_src
 
+
 * Footnotes
+
+[fn:3]Add error handling, or change to src_java{void} return.
+[fn:2]I'm not sure whether this is necessary. 
 
 [fn:1]This may work for Power 8 also. If so, I'll compile it to work
 for Power 8 and above. 
