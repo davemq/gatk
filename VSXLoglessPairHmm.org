@@ -132,19 +132,34 @@ our native routine return src_c{jdouble}.
 package com.ibm.power.pairhmm;
 #+end_src
 
-** New Java class VSXPairHMMBinding
+** New Java class VSXPairHMM
 
-In order to not require GATK classes to build, we create a new class
-src_java{VSXPairHMMBinding} that includes our native code, code to
-load our C++ library, and any code required for initialization and
-destruction of class data.
+We will create a new Java class src_java{VSXPairHmm} to provide the
+native C code that does matrix arithmetic. This code will be in a new
+package.
+
+*** Class
 
 #+begin_src java :tangle PowerPairHmm.java :comments org
-public interface VSXPairHMMBinding {
+/// Provides native PairHMM code accelerated for Power vector
+/// instructions, via compiler optimizations.
+public class VSXPairHmm {
+#+end_src
 
-    boolean load(void);
+*** Implement load
 
-    public void
+    The class will load the native library through a src_java{static} block.[fn:3]
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+    static {
+	System.loadLibrary("vsx_pairhmm");
+    }
+#+end_src
+
+*** Provide native subComputeReadLikelihoodGivenHaplotypeLog10Native
+
+#+begin_src java :tangle PowerPairHmm.java :comments org
+    public native double
 	subComputeReadLikelihoodGivenHaplotypeLog10Native(int paddedReadLength,
 							  int hapStartIndex,
 							  int paddedHaplotypeLength,
@@ -156,38 +171,25 @@ public interface VSXPairHMMBinding {
 }
 #+end_src
 
+
 ** New Java class VSXLoglessPairHMM
 
-We will create a new Java class VSXLoglessPairHMM, based on
-LoglessPairHMM. We will use this class to override the main loop of
-code with /native/ code, i.e. code implemented in C or C++.
+This code will be in GATK, in package
+org.broadinstitute.hellbender.utils.pairhmm.
 
-*** Class
+This code creates a new class src_java{VSXLoglessPairHMM} based on
+src_java{LoglessPairHMM}. It overrides
+src_java{subComputeReadLikelihoodGivenHaplotypeLog10} in order to call
+the native code.
 
-#+begin_src java :tangle PowerPairHmm.java :comments org
-/// Provides a native LoglessPairHMM implementation accelerated for
-/// Power vector instructions, via compiler optimizations.
-public class VSXLoglessPairHmm implements VSXPairHMMBinding {
-#+end_src
-
-*** Implement load
-
-    The class will load the native library.[fn:3]
-
-#+begin_src java :tangle PowerPairHmm.java :comments org
-    public boolean load(void) {
-	System.loadLibrary("vsx_pairhmm.so");
-    }
-#+end_src
-
-*** Implement subComputeReadLikelihoodGivenHaplotypeLog10
+*** Implement subComputeReadLikelihoodGivenHaplotypeLog10Native
 
     src_java{class VSXLoglessPairHMM} will implement
     src_java{subComputeReadLikelihoodGivenHaplotypeLog10} in order to call
     the native code.
 
 #+attr_latex: :options \footnotesize
-#+begin_src java :tangle PowerPairHmm.java :comments org
+#+begin_src java :tangle VSXLoglessPairHmm.java :comments org
     ///
     /// {@inheritDoc}
     ///
@@ -205,7 +207,7 @@ public class VSXLoglessPairHmm implements VSXPairHMMBinding {
         We leave initialization code in place.
 
 #+attr_latex: :options \footnotesize
-#+begin_src java :tangle PowerPairHmm.java :comments org
+#+begin_src java :tangle VSXLoglessPairHmm.java :comments org
         if (previousHaplotypeBases == null || previousHaplotypeBases.length != haplotypeBases.length) {
             final double initialValue = INITIAL_CONDITION / haplotypeBases.length;
             // set the initial value (free deletions in the beginning) for the first row in the
@@ -228,7 +230,7 @@ public class VSXLoglessPairHmm implements VSXPairHMMBinding {
         Now we call our native method
         src_java{subComputeReadLikelihoodGivenHaplotypeLog10Native}:
 
-#+begin_src java :tangle PowerPairHmm.java :comments org
+#+begin_src java :tangle VSXLoglessPairHmm.java :comments org
 	double finalSumProbabilities;
 	finalSumProbabilities =
 	    subComputeReadLikelihoodGivenHaplotypeLog10Native(paddedReadLength,
@@ -246,7 +248,7 @@ public class VSXLoglessPairHmm implements VSXPairHMMBinding {
         encounters errors. Check for that here and return if
         detected.[fn:2]
 
-#+begin_src java :tangle PowerPairHmm.java :comments org
+#+begin_src java :tangle VSXLoglessPairHmm.java :comments org
 	if (finalSumProbabilities.isNan()) {
 	    return finalSumProbabilities;
 	}
@@ -255,7 +257,7 @@ public class VSXLoglessPairHmm implements VSXPairHMMBinding {
         Finally, return log10 of src_java{finalSumProbabilities} minus
         src_java{INITIAL_CONDITIION_LOG10}.
 
-#+begin_src java :tangle PowerPairHmm.java :comments org
+#+begin_src java :tangle VSXLoglessPairHmm.java :comments org
         return Math.log10(finalSumProbabilities) - INITIAL_CONDITION_LOG10;
     }
 #+end_src
@@ -264,7 +266,7 @@ public class VSXLoglessPairHmm implements VSXPairHMMBinding {
 
     Here we add the src_java{private native} methods.
 
-#+begin_src java :tangle PowerPairHmm.java :comments org
+#+begin_src java :tangle VSXLoglessPairHmm.java :comments org
     private native static void
 	subComputeReadLikelihoodGivenHaplotypeLog10Native(int paddedReadLength,
 							  int hapStartIndex,
@@ -333,7 +335,7 @@ getDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleArrayP *arrays)
 	Get the length of the outer array.
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
-	jsize len = GetArrayLength(env, matrix);
+	jsize len = (*env)->GetArrayLength(env, matrix);
 #+end_src
 
 	Allocate src_c{jdoubleP} and src_c{jdoubleArray} arrays. We
@@ -343,7 +345,7 @@ getDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleArrayP *arrays)
 #+begin_src c :tangle PowerPairHmm.c :comments org
 	jdoubleP *ptrs;
 
-	int rc = posix_memalign(&ptrs, 16, len * sizeof(jdoubleP));
+	int rc = posix_memalign((void **)&ptrs, 16, len * sizeof(jdoubleP));
 	if (rc != 0) {
 		return NULL;
 	}
@@ -362,11 +364,11 @@ getDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleArrayP *arrays)
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
 	for (jsize i = 0; i < len; i++) {
-		,*arrays[i] = GetObjectArrayElement(env, matrix, i);
+		,*arrays[i] = (*env)->GetObjectArrayElement(env, matrix, i);
 		if (*arrays[i] == NULL) {
 			goto cleanarrays;
 		}
-		ptrs[i] = GetDoubleArrayElements(env, *arrays[i], NULL);
+		ptrs[i] = (*env)->GetDoubleArrayElements(env, *arrays[i], NULL);
 		if (ptrs[i] == NULL) {
 			goto cleanarrays;
 		}
@@ -398,7 +400,7 @@ cleanarrays:
 		}
 
 		/* ReleaseDoubleArrayElements() with mode=0 frees ptrs[i] */
-		ReleaseDoubleArrayElements(env, *arrays[i], ptrs[i], 0);
+		(*env)->ReleaseDoubleArrayElements(env, *arrays[i], ptrs[i], 0);
 	}
 
 	free(*arrays);
@@ -429,7 +431,7 @@ releaseDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleP *native, jdouble
 	First, get the length of the array.
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
-	jsize len = GetArrayLength(matrix);
+	jsize len = (*env)->GetArrayLength(env, matrix);
 #+end_src
 
 	For each index from 0 to src_c{len - 1}
@@ -439,7 +441,7 @@ releaseDouble2dArray(JNIEnv *env, jobjectArray matrix, jdoubleP *native, jdouble
 #+begin_src c :tangle PowerPairHmm.c :comments org
 	for (int i = 0; i < len; i++) {
 		/* ReleaseDoubleArrayElements with mode=0 frees memory */
-		ReleaseDoubleArrayElements(env, *jarray[i], native[i], 0);
+		(*env)->ReleaseDoubleArrayElements(env, *jarray[i], native[i], 0);
 	}
 #+end_src
 
@@ -470,7 +472,7 @@ src_java{subComputeReadLikelihoodGivenHaplotypeLog10} will start with
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
 JNIEXPORT jdouble JNICALL
-Java_com_ibm_pairhmm_PowerPairHmm_subComputeReadLikelihoodGivenHaplotypeLog10Inner
+Java_com_ibm_power_pairhmm_PowerPairHmm_subComputeReadLikelihoodGivenHaplotypeLog10Native
 (JNIEnv *env, jobject this, jint paddedReadLength, jint hapStartIndex,
  jint paddedHaplotypeLength, jobjectArray matchMatrix, jobjectArray priorMatrix,
  jobjectArray transitionMatrix, jobjectArray insertionMatrix,
@@ -521,24 +523,40 @@ Java_com_ibm_pairhmm_PowerPairHmm_subComputeReadLikelihoodGivenHaplotypeLog10Inn
 	src_c{getDouble2dArray} to retrieve the array elements and track them.
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
-	if ((match = getDouble2dArray(matchMatrix, &jMatch)) == NULL) {
+	if ((match = getDouble2dArray(env, matchMatrix, &jMatch)) == NULL) {
 		return NAN;
 	}
-	if ((prior = getDouble2dArray(priorMatrix, &jPrior)) == NULL) {
+	if ((prior = getDouble2dArray(env, priorMatrix, &jPrior)) == NULL) {
 		goto free_match;
 	}
-	if ((transition = getDouble2dArray(transitionMatrix, &jTransition)) == NULL) {
+	if ((transition = getDouble2dArray(env, transitionMatrix, &jTransition)) == NULL) {
 		goto free_prior;
 	}
-	if ((insertion = getDouble2dArray(insertionMatrix, &jInsertion)) == NULL) {
+	if ((insertion = getDouble2dArray(env, insertionMatrix, &jInsertion)) == NULL) {
 		goto free_transition;
 	}
-	if ((deletion = getDouble2dArray(deletionMatrix, &jDeletion)) == NULL) {
+	if ((deletion = getDouble2dArray(env, deletionMatrix, &jDeletion)) == NULL) {
 		goto free_insertion;
 	}
 #+end_src
 
-	If these calls succeed, we can now get on to the matrix manipulations.
+	If these calls succeed, we can now get on to the matrix
+	manipulations.
+
+	We add some constants used in the loop from Java class
+	PairHMMModel here. We could get these via JNI, but they
+	wouldn't be constants, possibly making the loop below more
+	difficult to optimize.
+
+#+begin_src c :tangle PowerPairHmm.c :comments org
+	/* From class PairHMMModel */
+	const int matchToMatch       = 0,
+		indelToMatch         = 1,
+		matchToInsertion     = 2,
+		insertionToInsertion = 3,
+		matchToDeletion      = 4,
+		deletionToDeletion   = 5;
+#+end_src
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
 	for (int i = 1; i < readLength; i++) {
@@ -577,22 +595,22 @@ Java_com_ibm_pairhmm_PowerPairHmm_subComputeReadLikelihoodGivenHaplotypeLog10Inn
         int endI = readLength - 1;
         finalSumProbabilities = 0.0;
         for (int j = 1; j < hapLength; j++) {
-            finalSumProbabilities += matchMatrix[endI][j] + insertionMatrix[endI][j];
+            finalSumProbabilities += match[endI][j] + insertion[endI][j];
         }
 #+end_src
 
 	We next release all the memory for the matrices.
 
 #+begin_src c :tangle PowerPairHmm.c :comments org
-	deletion = releaseDouble2dArray(deletionMatrix, deletion, &jDeletion);
+	releaseDouble2dArray(env, deletionMatrix, deletion, &jDeletion);
 free_insertion:
-	insertion = releaseDouble2dArray(insertionMatrix, insertion, &jInsertion);
+	releaseDouble2dArray(env, insertionMatrix, insertion, &jInsertion);
 free_transition:
-	transition = releaseDouble2dArray(transitionMatrix, transition, &jTransition);
+	releaseDouble2dArray(env, transitionMatrix, transition, &jTransition);
 free_prior:
-	prior = releaseDouble2dArray(priorMatrix, prior, &jPrior);
+	releaseDouble2dArray(env, priorMatrix, prior, &jPrior);
 free_match:
-	match = releaseDouble2dArray(matchMatrix, match, &jMatch);
+	releaseDouble2dArray(env, matchMatrix, match, &jMatch);
 #+end_src
 
 	Finally, we return src_c{finalSumProbabilities}.
@@ -604,7 +622,6 @@ free_match:
 
 
 * Footnotes
-
 [fn:3]Add error handling, or change to src_java{void} return.
 [fn:2]I'm not sure whether this is necessary. 
 
