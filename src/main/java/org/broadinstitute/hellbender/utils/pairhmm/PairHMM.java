@@ -70,6 +70,12 @@ public abstract class PairHMM implements Closeable{
             logger.info("Using the OpenMP multi-threaded AVX-accelerated native PairHMM implementation");
             return hmm;
         }),
+        /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
+        VSX_LOGLESS_CACHING(args -> {
+            final LoglessPairHMM hmm = new VSXLoglessPairHMM();
+            logger.info("Using the hardware-accelerated Java VSX_LOGLESS_CACHING PairHMM implementation");
+            return hmm;
+        }),
         /* Uses the fastest available PairHMM implementation supported on the platform.
            Order of precedence:
             1. AVX_LOGLESS_CACHING_OMP
@@ -91,7 +97,15 @@ public abstract class PairHMM implements Closeable{
                 return hmm;
             }
             catch ( UserException.HardwareFeatureException e ) {
-                logger.warn("***WARNING: Machine does not have the AVX instruction set support needed for the accelerated AVX PairHmm. " +
+                logger.info("AVX-accelerated native PairHMM implementation is not supported");
+            }
+            try {
+                final VSXLoglessPairHMM hmm = new VSXLoglessPairHMM();
+                logger.info("Using the VSX-accelerated native PairHMM implementation");
+                return hmm;
+            }
+            catch ( UserException.HardwareFeatureException e ) {
+                logger.warn("***WARNING: Machine does not have the VSX instruction set support needed for the accelerated VSX PairHmm. " +
                             "Falling back to the MUCH slower LOGLESS_CACHING implementation!");
                 return new LoglessPairHMM();
             }
