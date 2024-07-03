@@ -74,7 +74,7 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
                 "--strict" // to match walker version
@@ -102,7 +102,7 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
@@ -138,7 +138,7 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
                 "-L", "20:10000000-10100000",
                 "-O", output.getAbsolutePath(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
-                "-pairHMM", "AVX_LOGLESS_CACHING"
+                "-pairHMM", "VSX_LOGLESS_CACHING"
         };
 
         runCommandLine(args);
@@ -176,7 +176,7 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
                 "-G", "StandardAnnotation",
                 "-G", "AS_StandardAnnotation",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
-                "-pairHMM", "AVX_LOGLESS_CACHING"
+                "-pairHMM", "VSX_LOGLESS_CACHING"
         };
 
         runCommandLine(args);
@@ -209,7 +209,7 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
                 "-O", output.getAbsolutePath(),
                 "--" + AssemblyBasedCallerArgumentCollection.EMIT_REF_CONFIDENCE_LONG_NAME, ReferenceConfidenceMode.GVCF.toString(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
-                "-pairHMM", "AVX_LOGLESS_CACHING"
+                "-pairHMM", "VSX_LOGLESS_CACHING"
         };
 
         runCommandLine(args);
@@ -270,7 +270,7 @@ public class HaplotypeCallerSparkIntegrationTest extends CommandLineProgramTest 
                 "-G", "AS_StandardAnnotation",
                 "--" + AssemblyBasedCallerArgumentCollection.EMIT_REF_CONFIDENCE_LONG_NAME, ReferenceConfidenceMode.GVCF.toString(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
-                "-pairHMM", "AVX_LOGLESS_CACHING"
+                "-pairHMM", "VSX_LOGLESS_CACHING"
         };
 
         runCommandLine(args);

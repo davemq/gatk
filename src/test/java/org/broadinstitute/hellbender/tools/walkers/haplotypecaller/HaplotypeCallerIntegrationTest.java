@@ -90,7 +90,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
 
@@ -121,7 +121,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
 
@@ -150,7 +150,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--"+ReadThreadingAssemblerArgumentCollection.LINKED_DE_BRUIJN_GRAPH_LONG_NAME,
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
@@ -182,7 +182,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.SMITH_WATERMAN_DANGLING_END_MATCH_VALUE_LONG_NAME, "1",
                 "--" + AssemblyBasedCallerArgumentCollection.SMITH_WATERMAN_DANGLING_END_MISMATCH_PENALTY_LONG_NAME, "-2",
                 "--" + AssemblyBasedCallerArgumentCollection.SMITH_WATERMAN_DANGLING_END_GAP_OPEN_PENALTY_LONG_NAME, "-3",
@@ -230,7 +230,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-G", "StandardAnnotation",
                 "-G", "StandardHCAnnotation",
                 "-G", "AS_StandardAnnotation",
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
 
@@ -264,7 +264,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", output.getAbsolutePath(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
         };
 
@@ -290,7 +290,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--dragen-mode",
                 // STRE arguments
                 "--dragstr-params-path", TEST_FILES_DIR+"example.dragstr-params.txt",
@@ -319,7 +319,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 // FRD arguments
                 "--apply-frd", "--transform-dragen-mapping-quality", "--mapping-quality-threshold-for-genotyping", "1", "--disable-cap-base-qualities-to-map-quality", "--minimum-mapping-quality", "1",
                 // BQD arguments
@@ -371,7 +371,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-G", "StandardAnnotation",
                 "-G", "StandardHCAnnotation",
                 "-G", "AS_StandardAnnotation",
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
         };
 
         runCommandLine(args);
@@ -398,7 +398,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
                 "--" + AssemblyBasedCallerArgumentCollection.EMIT_REF_CONFIDENCE_LONG_NAME, ReferenceConfidenceMode.GVCF.toString(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
 
@@ -433,7 +433,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
                 "-ERC", "GVCF",
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--disable-sequence-graph-simplification",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
@@ -470,7 +470,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-G", "StandardHCAnnotation",
                 "-G", "AS_StandardAnnotation",
                 "--" + AssemblyBasedCallerArgumentCollection.EMIT_REF_CONFIDENCE_LONG_NAME, ReferenceConfidenceMode.GVCF.toString(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
@@ -507,7 +507,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-O", output.getAbsolutePath(),
                 "--" + AssemblyBasedCallerArgumentCollection.EMIT_REF_CONFIDENCE_LONG_NAME, ReferenceConfidenceMode.GVCF.toString(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
         };
 
         runCommandLine(args);
@@ -534,7 +534,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", b37Reference,
                 "-L", intervals,
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 // FRD arguments
                 "--apply-frd", "--transform-dragen-mapping-quality", "--mapping-quality-threshold-for-genotyping", "1", "--disable-cap-base-qualities-to-map-quality", "--minimum-mapping-quality", "1",
                 // BQD arguments
@@ -578,7 +578,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-G", "AS_StandardAnnotation",
                 "--" + AssemblyBasedCallerArgumentCollection.EMIT_REF_CONFIDENCE_LONG_NAME, ReferenceConfidenceMode.GVCF.toString(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
         };
 
         runCommandLine(args);
@@ -605,7 +605,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "--" + GenotypeCalculationArgumentCollection.SUPPORTING_CALLSET_LONG_NAME,
                     largeFileTestDir + "1000G.phase3.broad.withGenotypes.chr20.10100000.vcf",
                 "--" + GenotypeCalculationArgumentCollection.NUM_REF_SAMPLES_LONG_NAME, "2500",
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false",
         };
@@ -644,7 +644,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
         .addInterval(new SimpleInterval("20:10009880-10012631"))
         .add(StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, false)
         .add(AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2")
-        .add("pairHMM", "AVX_LOGLESS_CACHING")
+        .add("pairHMM", "VSX_LOGLESS_CACHING")
         .addFlag("floor-blocks")
         .add("ERC", "GVCF")
         .addOutput(output);
@@ -686,7 +686,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", b37Reference,
                 "-L", intervalString,
                 "-O", output.getAbsolutePath(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false",
                 "--" + AssemblyBasedCallerArgumentCollection.FORCE_CALL_ALLELES_LONG_NAME, forceCallingVcf.getAbsolutePath(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
@@ -722,7 +722,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", b37Reference,
                 "-L", intervalString,
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false",
                 "--" + AssemblyBasedCallerArgumentCollection.FORCE_CALL_ALLELES_LONG_NAME, forceCallingVcf.getAbsolutePath(),
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
@@ -794,7 +794,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
         argBuilder.addOutput(new File(vcfOutput.getAbsolutePath()));
         argBuilder.add("L", testInterval);
         argBuilder.add(AssemblyBasedCallerArgumentCollection.BAM_OUTPUT_SHORT_NAME, bamOutput.toUri().toString());
-        argBuilder.add("pairHMM", "AVX_LOGLESS_CACHING");
+        argBuilder.add("pairHMM", "VSX_LOGLESS_CACHING");
         argBuilder.add(AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME,2);
 
         runCommandLine(argBuilder.getArgsArray());
@@ -820,7 +820,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", b37_reference_20_21,
                 "-L", "20:10000000-10010000",
                 "-O", out.getAbsolutePath(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.SITES_ONLY_LONG_NAME,
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2"
@@ -849,7 +849,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", b37_reference_20_21,
                 "-L", "20:1-5000",
                 "-O", out.getAbsolutePath(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.ALLELE_EXTENSION_LONG_NAME, "2",
                 "--" + AssemblyRegionArgumentCollection.FORCE_ACTIVE_REGIONS_LONG_NAME, "true",
                 "--" + AssemblyRegionArgumentCollection.ASSEMBLY_REGION_OUT_LONG_NAME, assemblyRegionOut.getAbsolutePath(),
@@ -892,7 +892,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
         argBuilder.addOutput(new File(vcfOutput.getAbsolutePath()));
         argBuilder.add("L", testInterval);
         argBuilder.add(AssemblyBasedCallerArgumentCollection.BAM_OUTPUT_SHORT_NAME, bamOutput.getAbsolutePath());
-        argBuilder.add("pairHMM", "AVX_LOGLESS_CACHING");
+        argBuilder.add("pairHMM", "VSX_LOGLESS_CACHING");
         argBuilder.add(StandardArgumentDefinitions.CREATE_OUTPUT_BAM_INDEX_LONG_NAME, createBamoutIndex);
         argBuilder.add(StandardArgumentDefinitions.CREATE_OUTPUT_BAM_MD5_LONG_NAME, createBamoutMD5);
         argBuilder.add(StandardArgumentDefinitions.CREATE_OUTPUT_VARIANT_INDEX_LONG_NAME, createVCFOutIndex);
@@ -1131,7 +1131,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", b37_reference_20_21,
                 "-L", "20:10000000-10003000",
                 "-O", output.getAbsolutePath(),
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyRegionArgumentCollection.ASSEMBLY_REGION_OUT_LONG_NAME, assemblyRegionOut.getAbsolutePath()
         };
 
@@ -2036,7 +2036,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
 
                 // NOTE: These arguments are intended to force the assembly to fail at all sites in order to test what gets recovered by the pileup code
                 "--" + ReadThreadingAssemblerArgumentCollection.KMER_SIZE_LONG_NAME, "1",
@@ -2073,7 +2073,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
 
                 // NOTE: These arguments are intended to force the assembly to fail at all sites in order to test what gets recovered by the pileup code
                 "--" + ReadThreadingAssemblerArgumentCollection.KMER_SIZE_LONG_NAME, "1",
@@ -2109,7 +2109,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
 
                 // NOTE: These arguments are intended to force the assembly to fail at all sites in order to test what gets recovered by the pileup code
                 "--" + ReadThreadingAssemblerArgumentCollection.KMER_SIZE_LONG_NAME, "1",
@@ -2193,7 +2193,7 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
     @DataProvider(name="PairHMMResultsModes")
     public Object[][] PairHMMResultsModes() {
         return new Object[][] {
-                {PairHMM.Implementation.AVX_LOGLESS_CACHING, new File(TEST_FILES_DIR, "expected.AVX.hmmresults.txt")},
+                {PairHMM.Implementation.VSX_LOGLESS_CACHING, new File(TEST_FILES_DIR, "expected.VSX.hmmresults.txt")},
                 {PairHMM.Implementation.LOGLESS_CACHING, new File(TEST_FILES_DIR, "expected.Java.hmmresults.txt")},
                 {PairHMM.Implementation.ORIGINAL, new File(TEST_FILES_DIR, "expected.Original.hmmresults.txt")},
                 {PairHMM.Implementation.EXACT, new File(TEST_FILES_DIR, "expected.Exact.hmmresults.txt")},
@@ -2223,10 +2223,10 @@ public class HaplotypeCallerIntegrationTest extends CommandLineProgramTest {
         runCommandLine(args);
 
         if ( ! UPDATE_EXACT_MATCH_EXPECTED_OUTPUTS ) {
-            // Travis instances appear to produce subtly different results for the AVX caching results. Here we ensure that
+            // Travis instances appear to produce subtly different results for the VSX caching results. Here we ensure that
             // the test is weak enough to pass even if there are some integer rounding mismatches.
             // TODO It merits investigation into what exactly is mismatching on travis
-            if (implementation == PairHMM.Implementation.AVX_LOGLESS_CACHING) {
+            if (implementation == PairHMM.Implementation.VSX_LOGLESS_CACHING) {
                 XReadLines actualLines = new XReadLines(hmmOutput);
                 XReadLines expectedLines = new XReadLines(expected);
 

@@ -1095,7 +1095,7 @@ public class Mutect2IntegrationTest extends CommandLineProgramTest {
                 "-R", referenceFileName,
                 "-L", "20:10000000-10100000",
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + AssemblyBasedCallerArgumentCollection.SMITH_WATERMAN_DANGLING_END_MATCH_VALUE_LONG_NAME, "1",
                 "--" + AssemblyBasedCallerArgumentCollection.SMITH_WATERMAN_DANGLING_END_MISMATCH_PENALTY_LONG_NAME, "-2",
                 "--" + AssemblyBasedCallerArgumentCollection.SMITH_WATERMAN_DANGLING_END_GAP_OPEN_PENALTY_LONG_NAME, "-3",

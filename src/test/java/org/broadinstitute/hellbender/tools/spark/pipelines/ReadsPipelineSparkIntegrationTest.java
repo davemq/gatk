@@ -114,7 +114,7 @@ public class ReadsPipelineSparkIntegrationTest extends CommandLineProgramTest {
         args.add("-indels");
         args.add("--enable-baq");
         args.add("-pairHMM");
-        args.add("AVX_LOGLESS_CACHING");
+        args.add("VSX_LOGLESS_CACHING");
         args.add("-stand-call-conf");
         args.add("30.0");
         args.add("--known-sites");

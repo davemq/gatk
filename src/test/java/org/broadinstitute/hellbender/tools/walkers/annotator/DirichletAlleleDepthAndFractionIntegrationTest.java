@@ -54,7 +54,7 @@ public class DirichletAlleleDepthAndFractionIntegrationTest extends GatkToolInte
                 "-L", "20:10000000-10100000",
                 "-A", AllelePseudoDepth.class.getSimpleName(),
                 "-O", outputPath,
-                "-pairHMM", "AVX_LOGLESS_CACHING",
+                "-pairHMM", "VSX_LOGLESS_CACHING",
                 "--" + StandardArgumentDefinitions.ADD_OUTPUT_VCF_COMMANDLINE, "false"
         };
 
