@@ -2,6 +2,7 @@
 // See the second 'repositories' section below for the actual dependencies of GATK itself
 buildscript {
     repositories {
+	mavenLocal()
         mavenCentral()
      }
 }
@@ -44,6 +45,7 @@ task downloadGsaLibFile(type: Download) {
 
 
 repositories {
+    mavenLocal()
     mavenCentral()
 
     maven {
@@ -54,7 +56,6 @@ repositories {
         url "https://oss.sonatype.org/content/repositories/snapshots" //for disq snapshots
     }
 
-    mavenLocal()
 }
 
 final htsjdkVersion = System.getProperty('htsjdk.version','4.1.0')
@@ -332,6 +333,8 @@ dependencies {
     implementation('com.intel.gkl:gkl:0.8.11') {
         exclude module: 'htsjdk'
     }
+
+    implementation('com.ibm.power:power:1.0')
 
     implementation 'org.broadinstitute:gatk-bwamem-jni:1.0.4'
     implementation 'org.broadinstitute:gatk-fermilite-jni:1.2.0'

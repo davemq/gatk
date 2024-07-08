@@ -2,6 +2,8 @@ package org.broadinstitute.hellbender.utils.pairhmm;
 
 import org.broadinstitute.hellbender.utils.QualityUtils;
 
+import com.ibm.power.pairhmm.*;
+
 import static org.broadinstitute.hellbender.utils.pairhmm.PairHMMModel.*;
 
 public class VSXLoglessPairHMM extends LoglessPairHMM {
