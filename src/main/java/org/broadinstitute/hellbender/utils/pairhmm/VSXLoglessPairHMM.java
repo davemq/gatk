@@ -2,7 +2,7 @@ package org.broadinstitute.hellbender.utils.pairhmm;
 
 import org.broadinstitute.hellbender.utils.QualityUtils;
 
-import com.ibm.power.pairhmm.*;
+import com.ibm.power.pairhmm.PowerPairHMM;
 
 import static org.broadinstitute.hellbender.utils.pairhmm.PairHMMModel.*;
 
@@ -13,7 +13,11 @@ public class VSXLoglessPairHMM extends LoglessPairHMM {
     // we divide e by 3 because the observed base could have come from any of the non-observed alleles
     static final double TRISTATE_CORRECTION = 3.0;
 
+    static PowerPairHMM hmm;
 
+    static {
+	hmm = PowerPairHMM();
+    }
     
     /**
      * {@inheritDoc}
