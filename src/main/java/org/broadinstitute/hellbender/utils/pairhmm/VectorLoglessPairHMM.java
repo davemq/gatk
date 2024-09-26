@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.utils.pairhmm;
 
+import com.ibm.pairhmm.PowerPairHmm;
 import com.intel.gkl.pairhmm.IntelPairHmm;
 import com.intel.gkl.pairhmm.IntelPairHmmOMP;
 import com.intel.gkl.pairhmm.IntelPairHmmFpga;
@@ -35,6 +36,10 @@ public final class VectorLoglessPairHMM extends LoglessPairHMM {
          * OpenMP multi-threaded AVX-accelerated version of PairHMM
          */
         OMP,
+        /**
+         * VSX-accelerated version of PairHMM
+         */
+        VSX,
     }
 
     private static final Logger logger = LogManager.getLogger(VectorLoglessPairHMM.class);
@@ -71,6 +76,14 @@ public final class VectorLoglessPairHMM extends LoglessPairHMM {
                 isSupported = pairHmm.load(null);
                 if (!isSupported) {
                     throw new UserException.HardwareFeatureException("Machine does not support OpenMP AVX PairHMM.");
+                }
+                break;
+
+            case VSX:
+                pairHmm = new PowerPairHmm();
+                isSupported = pairHmm.load(null);
+                if (!isSupported) {
+                    throw new UserException.HardwareFeatureException("Machine does not support OpenMP VSX PairHMM.");
                 }
                 break;
 
